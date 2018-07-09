@@ -72,8 +72,7 @@ ALTER SEQUENCE public.grades_id_seq OWNED BY public.grades.id;
 --
 
 CREATE TABLE public.projects (
-    id integer NOT NULL,
-    title character varying(30),
+    title character varying(30) NOT NULL,
     description text,
     max_grade integer
 );
@@ -82,80 +81,40 @@ CREATE TABLE public.projects (
 ALTER TABLE public.projects OWNER TO "user";
 
 --
--- Name: projects_id_seq; Type: SEQUENCE; Schema: public; Owner: user
---
-
-CREATE SEQUENCE public.projects_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.projects_id_seq OWNER TO "user";
-
---
--- Name: projects_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: user
---
-
-ALTER SEQUENCE public.projects_id_seq OWNED BY public.projects.id;
-
-
---
 -- Name: students; Type: TABLE; Schema: public; Owner: user
 --
 
 CREATE TABLE public.students (
-    id integer NOT NULL,
     first_name character varying(30),
     last_name character varying(30),
-    github character varying(30)
+    github character varying(30) NOT NULL
 );
 
 
 ALTER TABLE public.students OWNER TO "user";
 
 --
--- Name: students_id_seq; Type: SEQUENCE; Schema: public; Owner: user
+-- Name: report_card_view; Type: VIEW; Schema: public; Owner: user
 --
 
-CREATE SEQUENCE public.students_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
+CREATE VIEW public.report_card_view AS
+ SELECT students.first_name,
+    students.last_name,
+    projects.title,
+    projects.max_grade,
+    grades.grade
+   FROM ((public.students
+     JOIN public.grades ON (((students.github)::text = (grades.student_github)::text)))
+     JOIN public.projects ON (((projects.title)::text = (grades.project_title)::text)));
 
 
-ALTER TABLE public.students_id_seq OWNER TO "user";
-
---
--- Name: students_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: user
---
-
-ALTER SEQUENCE public.students_id_seq OWNED BY public.students.id;
-
+ALTER TABLE public.report_card_view OWNER TO "user";
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: user
 --
 
 ALTER TABLE ONLY public.grades ALTER COLUMN id SET DEFAULT nextval('public.grades_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: user
---
-
-ALTER TABLE ONLY public.projects ALTER COLUMN id SET DEFAULT nextval('public.projects_id_seq'::regclass);
-
-
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: user
---
-
-ALTER TABLE ONLY public.students ALTER COLUMN id SET DEFAULT nextval('public.students_id_seq'::regclass);
 
 
 --
@@ -167,6 +126,7 @@ COPY public.grades (id, student_github, project_title, grade) FROM stdin;
 2	jhacks	Blockly	2
 3	sdevelops	Markov	50
 4	sdevelops	Blockly	100
+5	jhacks	Balloonicorn invite	6000000
 \.
 
 
@@ -174,42 +134,28 @@ COPY public.grades (id, student_github, project_title, grade) FROM stdin;
 -- Name: grades_id_seq; Type: SEQUENCE SET; Schema: public; Owner: user
 --
 
-SELECT pg_catalog.setval('public.grades_id_seq', 4, true);
+SELECT pg_catalog.setval('public.grades_id_seq', 5, true);
 
 
 --
 -- Data for Name: projects; Type: TABLE DATA; Schema: public; Owner: user
 --
 
-COPY public.projects (id, title, description, max_grade) FROM stdin;
-1	Markov	Tweets generated from Markov chains	50
-2	Blockly	Code using blocks	4000
-3	Balloonicorn invite	Block Mel from the party	100
+COPY public.projects (title, description, max_grade) FROM stdin;
+Markov	Tweets generated from Markov chains	50
+Blockly	Code using blocks	4000
+Balloonicorn invite	Block Mel from the party	100
 \.
-
-
---
--- Name: projects_id_seq; Type: SEQUENCE SET; Schema: public; Owner: user
---
-
-SELECT pg_catalog.setval('public.projects_id_seq', 3, true);
 
 
 --
 -- Data for Name: students; Type: TABLE DATA; Schema: public; Owner: user
 --
 
-COPY public.students (id, first_name, last_name, github) FROM stdin;
-1	Sarah	Developer	sdevelops
-2	Jane	Hacker	jhacks
+COPY public.students (first_name, last_name, github) FROM stdin;
+Sarah	Developer	sdevelops
+Jane	Hacker	jhacks
 \.
-
-
---
--- Name: students_id_seq; Type: SEQUENCE SET; Schema: public; Owner: user
---
-
-SELECT pg_catalog.setval('public.students_id_seq', 2, true);
 
 
 --
@@ -225,7 +171,7 @@ ALTER TABLE ONLY public.grades
 --
 
 ALTER TABLE ONLY public.projects
-    ADD CONSTRAINT projects_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT projects_pkey PRIMARY KEY (title);
 
 
 --
@@ -233,7 +179,23 @@ ALTER TABLE ONLY public.projects
 --
 
 ALTER TABLE ONLY public.students
-    ADD CONSTRAINT students_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT students_pkey PRIMARY KEY (github);
+
+
+--
+-- Name: grades_project_title_fkey; Type: FK CONSTRAINT; Schema: public; Owner: user
+--
+
+ALTER TABLE ONLY public.grades
+    ADD CONSTRAINT grades_project_title_fkey FOREIGN KEY (project_title) REFERENCES public.projects(title);
+
+
+--
+-- Name: grades_student_github_fkey; Type: FK CONSTRAINT; Schema: public; Owner: user
+--
+
+ALTER TABLE ONLY public.grades
+    ADD CONSTRAINT grades_student_github_fkey FOREIGN KEY (student_github) REFERENCES public.students(github);
 
 
 --
